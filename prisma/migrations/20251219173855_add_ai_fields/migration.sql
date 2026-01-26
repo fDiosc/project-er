@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "ER" ADD COLUMN "aiSuggestedScores" JSONB;
+ALTER TABLE "ER" ADD COLUMN "aiSummary" TEXT;
+ALTER TABLE "ER" ADD COLUMN "externalUpdatedAt" DATETIME;

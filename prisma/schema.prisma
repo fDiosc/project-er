@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ers       ER[]
+}
+
+model ER {
+  id                    String             @id @default(cuid())
+  externalId            String?
+  subject               String
+  overview              String?
+  description           String?
+  companyId             String
+  status                ERStatus           @default(OPEN)
+  priorityLabel         String?
+  submittedPriority     String?
+  sentiment             String?
+  committedVersion      String?
+  requestedAt           DateTime?
+  updatedAtCsv          DateTime?
+  strategic             Int?
+  impact                Int?
+  technical             Int?
+  resource              Int?
+  market                Int?
+  totalCached           Int?
+  externalStatus        String?
+  externalStatusAlt     String?
+  externalRequestStatus String?
+  releaseId             String?
+  devStatusId           String?
+  source                ERSource           @default(CSV)
+  lastSyncAt            DateTime?
+  externalUpdatedAt     DateTime?
+  zendeskTicketUrl      String?
+  aiSummary             String?
+  aiSuggestedScores     Json?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  themeId               String?
+  audits                Audit[]
+  comments              Comment[]
+  theme                 ERTheme?           @relation(fields: [themeId], references: [id])
+  company               Company            @relation(fields: [companyId], references: [id])
+  release               Release?           @relation(fields: [releaseId], references: [id])
+  devStatus             DevelopmentStatus? @relation(fields: [devStatusId], references: [id])
+  tags                  ERTag[]
+  aiReports             AIAnalysisReport[] @relation("ERToAIAnalysis")
+
+  @@index([companyId])
+  @@index([status])
+  @@index([subject])
+  @@index([releaseId])
+  @@index([devStatusId])
+}
+
+model Release {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ers       ER[]
+}
+
+model DevelopmentStatus {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ers       ER[]
+}
+
+model Tag {
+  id    String  @id @default(cuid())
+  label String  @unique
+  ers   ERTag[]
+}
+
+model ERTag {
+  erId  String
+  tagId String
+  tag   Tag    @relation(fields: [tagId], references: [id])
+  er    ER     @relation(fields: [erId], references: [id])
+
+  @@id([erId, tagId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  erId      String
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+  er        ER       @relation(fields: [erId], references: [id])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  jsonValue Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Audit {
+  id        String   @id @default(cuid())
+  erId      String
+  actorId   String?
+  action    String
+  payload   Json?
+  createdAt DateTime @default(now())
+  er        ER       @relation(fields: [erId], references: [id])
+}
+
+model ERTheme {
+  id              String   @id @default(cuid())
+  title           String
+  description     String?
+  requirements    Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  suggestedScores Json?
+  ers             ER[]
+}
+
+model AIAnalysisReport {
+  id        String   @id @default(cuid())
+  title     String
+  prompt    String
+  report    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ers       ER[]     @relation("ERToAIAnalysis")
+}
+
+enum ERSource {
+  CSV
+  ZENDESK
+}
+
+enum ERStatus {
+  OPEN
+  IN_REVIEW
+  ACCEPTED
+  REJECTED
+  DELIVERED
+  MANUAL_REVIEW
+  ACCEPT
+  REJECT
+}
