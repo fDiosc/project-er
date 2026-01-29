@@ -32,13 +32,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { ChevronDown, Search, RefreshCw, Filter, Brain } from 'lucide-react'
 import { AIAnalysisModal } from './ai-analysis-modal'
@@ -46,6 +39,7 @@ import { AIAnalysisModal } from './ai-analysis-modal'
 import { columns } from './columns'
 import { ERDetailDialog } from '../er-detail/er-detail-dialog'
 import { ZendeskSyncButton } from './zendesk-sync-button'
+import { DataTableFacetedFilter } from './data-table-faceted-filter'
 import { ERFilters, PaginatedResponse, ERDto } from '@/types'
 import { apiRequest } from '@/lib/api'
 import { ERStatus } from '@prisma/client'
@@ -80,9 +74,12 @@ export function ERTable({ initialFilters = {} }: ERTableProps) {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = useState({})
   const [globalFilter, setGlobalFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [statusFilter, setStatusFilter] = useState<ERStatus[]>([])
   const [selectedERId, setSelectedERId] = useState<string | null>(null)
   const [aiModalOpen, setAiModalOpen] = useState(false)
+  const [companyFilter, setCompanyFilter] = useState<string[]>([])
+  const [releaseFilter, setReleaseFilter] = useState<string[]>([])
+  const [devStatusFilter, setDevStatusFilter] = useState<string[]>([])
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
@@ -117,7 +114,10 @@ export function ERTable({ initialFilters = {} }: ERTableProps) {
   // Build filters from state
   const filters: ERFilters = {
     q: globalFilter || undefined,
-    status: statusFilter === 'ALL' ? undefined : (statusFilter as ERStatus),
+    status: statusFilter.length > 0 ? statusFilter : undefined,
+    companyId: companyFilter.length > 0 ? companyFilter : undefined,
+    releaseId: releaseFilter.length > 0 ? releaseFilter : undefined,
+    devStatusId: devStatusFilter.length > 0 ? devStatusFilter : undefined,
     page: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
     sort: sorting.length > 0
@@ -125,6 +125,31 @@ export function ERTable({ initialFilters = {} }: ERTableProps) {
       : undefined,
     ...initialFilters,
   }
+
+  // Fetch filter options
+  const { data: companies } = useQuery({
+    queryKey: ['companies'],
+    queryFn: async () => {
+      const res = await apiRequest('/api/companies')
+      return res.json()
+    }
+  })
+
+  const { data: releases } = useQuery({
+    queryKey: ['releases'],
+    queryFn: async () => {
+      const res = await apiRequest('/api/releases')
+      return res.json()
+    }
+  })
+
+  const { data: devStatuses } = useQuery({
+    queryKey: ['dev-statuses'],
+    queryFn: async () => {
+      const res = await apiRequest('/api/dev-statuses')
+      return res.json()
+    }
+  })
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['ers', filters],
@@ -176,23 +201,60 @@ export function ERTable({ initialFilters = {} }: ERTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="relative w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search ERs..."
               value={globalFilter}
               onChange={(event) => setGlobalFilter(event.target.value)}
-              className="pl-8"
+              className="pl-8 h-9"
             />
           </div>
+
+          <DataTableFacetedFilter
+            title="Status"
+            selectedValues={statusFilter}
+            onSelect={(values) => setStatusFilter(values as ERStatus[])}
+            options={[
+              { label: 'Open', value: 'OPEN' },
+              { label: 'In Review', value: 'IN_REVIEW' },
+              { label: 'Accept', value: 'ACCEPT' },
+              { label: 'Accepted', value: 'ACCEPTED' },
+              { label: 'Delivered', value: 'DELIVERED' },
+              { label: 'Manual Review', value: 'MANUAL_REVIEW' },
+              { label: 'Reject', value: 'REJECT' },
+              { label: 'Rejected', value: 'REJECTED' },
+            ]}
+          />
+
+          <DataTableFacetedFilter
+            title="Company"
+            selectedValues={companyFilter}
+            onSelect={setCompanyFilter}
+            options={companies?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+          />
+
+          <DataTableFacetedFilter
+            title="Release"
+            selectedValues={releaseFilter}
+            onSelect={setReleaseFilter}
+            options={releases?.map((r: any) => ({ label: r.name, value: r.id })) || []}
+          />
+
+          <DataTableFacetedFilter
+            title="JIRA Status"
+            selectedValues={devStatusFilter}
+            onSelect={setDevStatusFilter}
+            options={devStatuses?.map((s: any) => ({ label: s.name, value: s.id })) || []}
+          />
 
           {Object.keys(rowSelection).length > 0 && (
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 border-primary text-primary hover:bg-primary/5"
+              className="h-9 gap-2 border-primary text-primary hover:bg-primary/5"
               onClick={() => setAiModalOpen(true)}
             >
               <Brain className="h-4 w-4" />
@@ -200,71 +262,56 @@ export function ERTable({ initialFilters = {} }: ERTableProps) {
             </Button>
           )}
 
-          <div className="w-[180px]">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <div className="flex items-center">
-                  <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <SelectValue placeholder="Status" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                <SelectItem value="OPEN">Open</SelectItem>
-                <SelectItem value="IN_REVIEW">In Review</SelectItem>
-                <SelectItem value="ACCEPT">Accept</SelectItem>
-                <SelectItem value="ACCEPTED">Accepted</SelectItem>
-                <SelectItem value="DELIVERED">Delivered</SelectItem>
-                <SelectItem value="MANUAL_REVIEW">Manual Review</SelectItem>
-                <SelectItem value="REJECT">Reject</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           {data && (
-            <Badge variant="secondary">
+            <Badge variant="secondary" className="h-9 px-3">
               {data.total} ERs
             </Badge>
           )}
         </div>
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <ZendeskSyncButton />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                Columns <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  )
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            {/* Any items that should be on the left below the filters */}
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isLoading}
+              className="h-9"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <ZendeskSyncButton />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  Columns <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {table
+                  .getAllColumns()
+                  .filter((column) => column.getCanHide())
+                  .map((column) => {
+                    return (
+                      <DropdownMenuCheckboxItem
+                        key={column.id}
+                        className="capitalize"
+                        checked={column.getIsVisible()}
+                        onCheckedChange={(value) =>
+                          column.toggleVisibility(!!value)
+                        }
+                      >
+                        {column.id}
+                      </DropdownMenuCheckboxItem>
+                    )
+                  })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
 

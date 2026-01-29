@@ -60,7 +60,7 @@ export function Navigation() {
   }
 
   return (
-    <div className="border-b">
+    <div className="border-b print:hidden">
       <div className="flex h-16 items-center px-4">
         <div className="flex items-center space-x-4">
           <h2 className="text-lg font-semibold">ER Review</h2>
@@ -118,7 +118,7 @@ export function Navigation() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="outline" size="sm" disabled title="Coming soon">
+          <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>

@@ -7,7 +7,21 @@ import type { ERDto, PaginatedResponse } from '@/types'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const query = Object.fromEntries(searchParams.entries())
+
+    // Helper to extract multi-select filters (handling both key and key[])
+    const getMulti = (key: string) => {
+      const values = [...searchParams.getAll(key), ...searchParams.getAll(`${key}[]`)]
+      if (values.length === 0) return undefined
+      return values.length === 1 ? values[0] : values
+    }
+
+    const query = {
+      ...Object.fromEntries(searchParams.entries()),
+      companyId: getMulti('companyId'),
+      status: getMulti('status'),
+      releaseId: getMulti('releaseId'),
+      devStatusId: getMulti('devStatusId'),
+    }
 
     const filters = erFiltersSchema.parse(query)
 
@@ -26,11 +40,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (filters.companyId) {
-      where.companyId = filters.companyId
+      where.companyId = Array.isArray(filters.companyId) ? { in: filters.companyId } : filters.companyId
     }
 
     if (filters.status) {
-      where.status = filters.status
+      where.status = Array.isArray(filters.status) ? { in: filters.status } : filters.status
+    }
+
+    if (filters.releaseId) {
+      where.releaseId = Array.isArray(filters.releaseId) ? { in: filters.releaseId } : filters.releaseId
+    }
+
+    if (filters.devStatusId) {
+      where.devStatusId = Array.isArray(filters.devStatusId) ? { in: filters.devStatusId } : filters.devStatusId
     }
 
     if (filters.minTotal !== undefined || filters.maxTotal !== undefined) {
@@ -51,7 +73,18 @@ export async function GET(request: NextRequest) {
       for (const sort of sorts) {
         const isDesc = sort.startsWith('-')
         const field = isDesc ? sort.slice(1) : sort
-        orderBy.push({ [field]: isDesc ? 'desc' : 'asc' })
+        const dir = isDesc ? 'desc' : 'asc'
+
+        // Handle nested relation sorting
+        if (field === 'company_name' || field === 'company.name') {
+          orderBy.push({ company: { name: dir } })
+        } else if (field === 'release_name' || field === 'release.name') {
+          orderBy.push({ release: { name: dir } })
+        } else if (field === 'devStatus_name' || field === 'devStatus.name') {
+          orderBy.push({ devStatus: { name: dir } })
+        } else {
+          orderBy.push({ [field]: dir })
+        }
       }
     } else {
       orderBy.push({ updatedAt: 'desc' })

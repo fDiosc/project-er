@@ -6,6 +6,8 @@ import { analyzeERContext } from '@/lib/openai'
 export const dynamic = 'force-dynamic'
 
 const SETTING_KEY = 'zendesk_config'
+const JIRA_FIX_VERSION_FIELD_ID = 24247216
+const JIRA_STATUS_TEXT_FIELD_ID = 24206703
 
 export async function POST(request: NextRequest) {
     try {
@@ -139,11 +141,41 @@ export async function POST(request: NextRequest) {
                     }
                 }
 
+                console.log(`Processing ticket ${ticket.id}...`)
+
+                // Extract JIRA Fields
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const jiraFixVersionField = ticket.custom_fields.find((f: any) => f.id === JIRA_FIX_VERSION_FIELD_ID)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const jiraStatusTextField = ticket.custom_fields.find((f: any) => f.id === JIRA_STATUS_TEXT_FIELD_ID)
+
+                let releaseId: string | null = null
+                if (jiraFixVersionField?.value) {
+                    const release = await prisma.release.upsert({
+                        where: { name: String(jiraFixVersionField.value) },
+                        update: {},
+                        create: { name: String(jiraFixVersionField.value) }
+                    })
+                    releaseId = release.id
+                }
+
+                let devStatusId: string | null = null
+                if (jiraStatusTextField?.value) {
+                    const devStatus = await prisma.developmentStatus.upsert({
+                        where: { name: String(jiraStatusTextField.value) },
+                        update: {},
+                        create: { name: String(jiraStatusTextField.value) }
+                    })
+                    devStatusId = devStatus.id
+                }
+
                 const erData = {
                     externalId,
                     subject: ticket.subject,
                     description: ticket.description,
                     companyId,
+                    releaseId,
+                    devStatusId,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     source: 'ZENDESK' as any,
                     requestedAt: new Date(ticket.created_at),
@@ -179,11 +211,11 @@ export async function POST(request: NextRequest) {
                             }
                         })
 
-                        if (commentCount > 0) {
-                            console.log(`Ticket ${ticket.id} unchanged and has comments, skipping...`)
+                        if (commentCount > 0 && existing.releaseId && existing.devStatusId) {
+                            console.log(`Ticket ${ticket.id} unchanged, has comments and JIRA fields, skipping...`)
                             continue
                         }
-                        console.log(`Ticket ${ticket.id} unchanged but missing comments, proceeding with conversation sync...`)
+                        console.log(`Ticket ${ticket.id} unchanged but missing comments or JIRA fields, proceeding with sync...`)
                     }
                 }
 

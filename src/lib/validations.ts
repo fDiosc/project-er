@@ -63,8 +63,10 @@ export const updateScoresSchema = z.object({
 // ER query filters schema
 export const erFiltersSchema = z.object({
   q: z.string().optional(),
-  companyId: z.string().cuid().optional(),
-  status: erStatusSchema.optional(),
+  companyId: z.union([z.string().cuid(), z.array(z.string().cuid())]).optional(),
+  status: z.union([erStatusSchema, z.array(erStatusSchema)]).optional(),
+  releaseId: z.union([z.string().cuid(), z.array(z.string().cuid())]).optional(),
+  devStatusId: z.union([z.string().cuid(), z.array(z.string().cuid())]).optional(),
   minTotal: z.coerce.number().optional(),
   maxTotal: z.coerce.number().optional(),
   tags: z.array(z.string()).optional(),

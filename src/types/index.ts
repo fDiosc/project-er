@@ -111,10 +111,35 @@ export type DashboardSummary = {
 }
 
 // Filter types for the ER table
+export type ReleaseSummary = {
+  releaseId: string
+  releaseName: string
+  totalERs: number
+  byStatus: {
+    open: number
+    inProgress: number
+    completed: number
+  }
+  customers: Array<{
+    id: string
+    name: string
+    itemCount: number
+  }>
+  items: Array<{
+    id: string
+    subject: string
+    companyName: string
+    devStatus: string
+    status: ERStatus
+  }>
+}
+
 export type ERFilters = {
   q?: string
-  companyId?: string
-  status?: ERStatus
+  companyId?: string | string[]
+  status?: ERStatus | ERStatus[]
+  releaseId?: string | string[]
+  devStatusId?: string | string[]
   minTotal?: number
   maxTotal?: number
   tags?: string[]
