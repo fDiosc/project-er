@@ -2,6 +2,11 @@
 
 A comprehensive guide for using the ER Review System to manage, review, and track enhancement requests.
 
+> [!NOTE]
+> This guide covers the **GPT-5.2 Enhanced** version of the ER Review System.
+
+*Last updated: 2026-02-02*
+
 ## 🏁 Getting Started
 
 ### First Login
@@ -111,6 +116,13 @@ For quick updates without opening the detail drawer:
 ## 📊 Dashboard Analytics
 
 Navigate to **Dashboard** from the main menu to view:
+
+### 🌟 Intelligent Dashboard (New)
+The Intelligent Dashboard is an AI-powered control center for your backlog.
+
+- **AI Chat Panel**: Ask questions directly to your data. "What's the overall sentiment for Company X?" or "Compare the resource effort of our top 5 high-impact ERs."
+- **Artifact Renderer**: AI-generated reports, strategic analyses, and consolidated PRDs are displayed here in a clean, interactive format.
+- **Deep Context**: The AI has access to your full synced history, providing insights that go beyond simple metadata.
 
 ### **Key Performance Indicators (KPIs)**
 - **Total ERs**: Complete count across all statuses
@@ -362,6 +374,20 @@ ERs follow a structured workflow:
 
 ---
 
+## 🔄 Zendesk Integration
+
+The Zendesk sync is a powerful one-way integration that keeps your ER backlog in sync with customer support tickets.
+
+### **Sync Options**
+- **Auto-reject Missing**: ERs no longer present in the synced Zendesk view will be moved to `REJECTED`.
+- **Auto-accept Mapped**: Automatically move tickets to `ACCEPTED` if specific Zendesk custom fields match (e.g., "Dev on Track").
+- **Run AI Analysis**: Trigger a GPT-5.2 analysis of the **entire conversation history** during the sync. This generates the initial summary and suggests scores.
+
+### **The "Conversation Story"**
+Every Zendesk-synced ER features a full chronological thread of public comments, ensuring you have the complete context for prioritization without leaving the app.
+
+---
+
 ## 📞 Support
 
 For additional help:
@@ -372,4 +398,4 @@ For additional help:
 
 ---
 
-*Last updated: 2025-12-22*
+*Last updated: 2026-02-02*

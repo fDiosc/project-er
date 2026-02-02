@@ -15,6 +15,8 @@ A comprehensive Enhancement Request (ER) management system built with Next.js 15
 -   **Zendesk Sync**: Robust integration syncing ticket metadata and **full item histories**
 -   **AI Decision Support**: GPT-generated ticket summaries and prioritization score suggestions
 -   **Conversation Story**: Visual chronological thread of all synced Zendesk comments
+- **Intelligent Dashboard**: AI Chat interface for direct backlog interrogation and custom analysis reports
+- **Automated PRDs**: One-click consolidation of multiple similar ERs into a single technical PRD
 
 ### Advanced Features
 - **Authentication**: JWT-based security with role management
@@ -212,10 +214,13 @@ NODE_ENV="production"
 - Advanced data table with inline editing
 - CSV import/export functionality
 - Real-time dashboard analytics
+- Intelligent Dashboard with AI Chat & Reports
 - Scoring system with configurable weights
 - Status workflow management
 - Authentication system
 - Comment and audit systems
+- Robust Zendesk synchronization with full conversation history
+- GPT-5.2 powered analysis and PRD consolidation
 
 ### 🚧 In Progress
 - Advanced filtering UI
